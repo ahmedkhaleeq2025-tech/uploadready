@@ -1,0 +1,3126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>UploadReady - Fix Image & PDF Upload Problems Online</title>
+<meta name="description" content="UploadReady checks and fixes common image and PDF upload problems. Compress, resize, convert, merge and split files directly in your browser.">
+<meta name="keywords" content="image compressor, PDF compressor, resize image, convert image, PDF tools, upload file checker, image upload problems">
+
+<!-- PDF ENGINES -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6f9;color:#17202a}
+.wrap{max-width:1100px;margin:auto;padding:15px}
+.card{background:#fff;border-radius:18px;padding:20px;margin-bottom:18px;box-shadow:0 5px 22px rgba(0,0,0,.07)}
+.header{background:linear-gradient(135deg,#111827,#2563eb);color:#fff;border-radius:18px;padding:25px;margin-bottom:18px}
+.header h1{margin:0 0 7px;font-size:34px}.header p{margin:0;font-size:17px}
+.upload{display:block;border:2px dashed #9ca3af;border-radius:16px;padding:35px 15px;text-align:center;cursor:pointer;background:#fafafa}
+.upload:hover{border-color:#2563eb;background:#f5f8ff}
+.upload .icon{font-size:45px}.upload h2{margin:8px 0;font-size:25px}.upload p{color:#64748b}
+input[type=file]{display:none}
+.fileinfo{display:none;margin-top:14px;padding:14px;background:#f8fafc;border-radius:12px}
+.info-grid,.result-grid,.checks{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+.info-box,.result-box{background:#fff;border-radius:10px;padding:12px;text-align:center}
+.info-box b,.result-box b{display:block;font-size:18px;margin-top:5px}
+.status{display:none;padding:13px;border-radius:10px;margin-top:13px;font-weight:700}
+.status.show{display:block}.status.success{background:#dcfce7;color:#166534}
+.status.error{background:#fee2e2;color:#991b1b}.status.info{background:#dbeafe;color:#1e40af}
+.status.warn{background:#ffedd5;color:#9a3412}
+.checker h2{margin:0;font-size:24px}.sub,.desc{color:#64748b;line-height:1.55}
+.overall{padding:14px;border-radius:11px;font-weight:700;line-height:1.5}
+.overall.good{background:#dcfce7;color:#166534}.overall.warn{background:#ffedd5;color:#9a3412}
+.overall.neutral{background:#e2e8f0;color:#334155}
+.checks{grid-template-columns:repeat(2,1fr)}
+.check{padding:14px;border-radius:11px;border:1px solid #e2e8f0;background:#f8fafc}
+.check.good{background:#f0fdf4;border-color:#bbf7d0}.check.warn{background:#fff7ed;border-color:#fed7aa}
+.check.bad{background:#fef2f2;border-color:#fecaca}
+.check b{display:block;margin-bottom:5px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.tab{border:0;border-radius:10px;padding:13px 18px;background:#e5e7eb;font-size:16px;font-weight:700;cursor:pointer}
+.tab.active{background:#2563eb;color:#fff}
+.tool{display:none}.tool.active{display:block}
+.tool h2{font-size:26px;margin:4px 0 8px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.field label{display:block;font-weight:700;margin-bottom:7px}
+.field input,.field select{width:100%;min-height:50px;padding:11px;border:1px solid #d1d5db;border-radius:10px;font-size:17px;background:#fff}
+.checkrow{display:flex;align-items:center;gap:9px;margin:13px 0}
+.checkrow input{transform:scale(1.25)}
+button{border:0;border-radius:10px;padding:13px 17px;font-size:16px;font-weight:700;cursor:pointer}
+.primary{width:100%;background:#2563eb;color:#fff;margin-top:12px}
+.success{background:#16a34a;color:#fff}.dark{background:#111827;color:#fff}
+.light{background:#e2e8f0;color:#17202a}.danger{background:#dc2626;color:#fff}
+.quick,.presets,.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.quick button,.presets button{padding:9px 12px;background:#fff;border:1px solid #cbd5e1}
+.note{background:#eff6ff;border-left:4px solid #2563eb;padding:13px;border-radius:8px;margin-top:13px;line-height:1.55}
+.manual{background:#f1f5f9;border-radius:14px;padding:15px;margin-top:15px}
+.manual h3{margin:0 0 13px}.zoom{display:flex;align-items:center;gap:8px}
+.zoom input{flex:1}.zoom button{width:50px;height:48px;padding:0;background:#2563eb;color:#fff;font-size:25px}
+.zoom b{min-width:60px;text-align:center}
+.pos{display:grid;grid-template-columns:55px 55px 55px;justify-content:center;gap:7px;margin-top:12px}
+.pos button{height:50px;padding:0;background:#334155;color:#fff;font-size:22px}.empty{visibility:hidden}
+.preview{text-align:center;background:#f8fafc;border-radius:14px;padding:14px;margin-top:17px}
+canvas{max-width:100%;height:auto;border:2px solid #cbd5e1;border-radius:8px;background:#fff}
+#photoCanvas{touch-action:none;cursor:grab}
+.result{display:none}
+.download{display:block;text-align:center;background:#16a34a;color:#fff;text-decoration:none;padding:14px;border-radius:10px;margin-top:12px;font-weight:700}
+.pdf-tabs{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}
+.pdf-tab{background:#e5e7eb;color:#17202a}.pdf-tab.active{background:#dc2626;color:#fff}
+.pdf-tool{display:none}.pdf-tool.active{display:block}
+.pdf-box{border:2px dashed #cbd5e1;border-radius:13px;padding:20px;text-align:center}
+.pdf-file-list{background:#f8fafc;padding:12px;border-radius:10px;margin-top:10px;line-height:1.7;word-break:break-word}
+.pdf-result{background:#f0fdf4;border-radius:11px;padding:13px;margin-top:12px;color:#166534}
+.pdf-warning{background:#fff7ed;color:#9a3412;padding:12px;border-radius:10px;line-height:1.5}
+.page-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:15px}
+.page-card{background:#f8fafc;padding:12px;border-radius:12px;text-align:center}
+.page-card canvas{width:100%;height:auto}
+.privacy,.footer{text-align:center;color:#64748b;font-size:13px;line-height:1.5;padding:8px 5px 20px}
+
+@media(max-width:700px){
+.wrap{padding:10px}.card,.header{padding:17px;border-radius:15px}
+.header h1{font-size:30px}.header p{font-size:17px}
+.upload{padding:32px 10px}.upload h2{font-size:24px}
+.info-grid{grid-template-columns:1fr 1fr}.checks,.grid,.result-grid{grid-template-columns:1fr}
+.tab{flex:1;min-width:45%;font-size:17px}
+.tool h2{font-size:27px}.desc,.sub{font-size:17px}
+.field label{font-size:18px}.field input,.field select{font-size:18px;min-height:55px}
+.quick button,.presets button{font-size:16px;padding:11px}
+.primary{font-size:19px;padding:16px}
+.actions button{flex:1;min-width:160px}
+.page-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="header">
+<h1>UPLOADREADY</h1>
+<p>Fix your file before you upload it.</p>
+</div>
+
+
+<!-- UNIVERSAL IMAGE UPLOAD -->
+
+<div class="card">
+
+<label class="upload" id="imageUploadBox">
+
+<div class="icon">📤</div>
+<h2>Upload your image</h2>
+<p>JPG, PNG or WebP • Click or drag & drop</p>
+<small>Image processing happens inside your browser.</small>
+
+<input id="fileInput" type="file"
+accept="image/jpeg,image/png,image/webp,image/*">
+
+</label>
+
+<div id="fileInfo" class="fileinfo">
+
+<b id="fileName"></b>
+
+<div class="info-grid">
+
+<div class="info-box">Size<b id="origSize">-</b></div>
+<div class="info-box">Dimensions<b id="origDim">-</b></div>
+<div class="info-box">Format<b id="origFormat">-</b></div>
+<div class="info-box">Status<b id="origStatus">Ready</b></div>
+
+</div>
+</div>
+
+<div id="status" class="status"></div>
+
+</div>
+
+
+<!-- IMAGE PROBLEM CHECKER -->
+
+<div class="card checker">
+
+<h2>🔎 Upload Problem Checker</h2>
+
+<p class="sub">
+Check file size, dimensions, format and basic technical issues before uploading.
+</p>
+
+<div id="overall" class="overall neutral">
+Upload an image above to start checking.
+</div>
+
+<div id="checks" class="checks">
+
+<div class="check"><b>📦 File Size</b>Waiting for image</div>
+<div class="check"><b>📐 Dimensions</b>Waiting for image</div>
+<div class="check"><b>🖼️ Format</b>Waiting for image</div>
+<div class="check"><b>🎯 Upload Status</b>Waiting for image</div>
+
+</div>
+
+<div class="actions">
+
+<button class="success" onclick="fixUploadProblem()">🔧 Fix My File</button>
+<button class="light" onclick="resetChecker()">Reset Checker</button>
+
+</div>
+
+</div>
+
+
+<!-- IMAGE TOOLS -->
+
+<div id="imageWorkspace" class="card" style="display:none">
+
+<div class="tabs">
+
+<button class="tab active" onclick="openImageTool('compress',this)">Compress</button>
+<button class="tab" onclick="openImageTool('resize',this)">Resize</button>
+<button class="tab" onclick="openImageTool('convert',this)">Convert</button>
+<button class="tab" onclick="openImageTool('photo',this)">Photo Maker</button>
+
+</div>
+
+
+<!-- COMPRESS -->
+
+<div id="compress" class="tool active">
+
+<h2>Compress Image</h2>
+
+<p class="desc">
+Reduce image size while keeping the image as clear as possible.
+</p>
+
+<div class="grid">
+
+<div class="field">
+
+<label>Target file size (KB)</label>
+
+<input id="targetKB" type="number" min="5" value="200">
+
+<div class="quick">
+
+<button onclick="setQuickSize(20)">20 KB</button>
+<button onclick="setQuickSize(50)">50 KB</button>
+<button onclick="setQuickSize(100)">100 KB</button>
+<button onclick="setQuickSize(200)">200 KB</button>
+
+</div>
+
+</div>
+
+<div class="field">
+
+<label>Output format</label>
+
+<select id="compressFormat">
+<option value="image/jpeg">JPG</option>
+<option value="image/png">PNG</option>
+<option value="image/webp">WebP</option>
+</select>
+
+</div>
+
+</div>
+
+<button class="primary" onclick="processImage('compress')">
+Compress Image
+</button>
+
+</div>
+
+
+<!-- RESIZE -->
+
+<div id="resize" class="tool">
+
+<h2>Resize Image</h2>
+
+<p class="desc">
+Set exact width and height in pixels.
+</p>
+
+<div class="grid">
+
+<div class="field">
+<label>Width (px)</label>
+<input id="resizeW" type="number" value="600">
+</div>
+
+<div class="field">
+<label>Height (px)</label>
+<input id="resizeH" type="number" value="600">
+</div>
+
+</div>
+
+<div class="checkrow">
+<input id="keepAspect" type="checkbox" checked>
+<label for="keepAspect">Keep aspect ratio</label>
+</div>
+
+<button class="primary" onclick="processImage('resize')">
+Resize Image
+</button>
+
+</div>
+
+
+<!-- CONVERT -->
+
+<div id="convert" class="tool">
+
+<h2>Convert Image</h2>
+
+<p class="desc">
+Convert JPG, PNG or WebP into another image format.
+</p>
+
+<div class="field">
+
+<label>Convert to</label>
+
+<select id="convertFormat">
+<option value="image/jpeg">JPG</option>
+<option value="image/png">PNG</option>
+<option value="image/webp">WebP</option>
+</select>
+
+</div>
+
+<button class="primary" onclick="processImage('convert')">
+Convert Image
+</button>
+
+</div>
+
+
+<!-- PHOTO MAKER -->
+
+<div id="photo" class="tool">
+
+<h2>Country Photo Maker</h2>
+
+<p class="desc">
+Choose country and document type. Use manual zoom and positioning
+to keep the face/head where you want it.
+</p>
+
+<div class="grid">
+
+<div class="field">
+<label>Country</label>
+
+<select id="country" onchange="countryChanged()">
+<option>India</option>
+<option>USA</option>
+<option>UK</option>
+<option>Canada</option>
+<option>Australia</option>
+<option>UAE</option>
+<option>Saudi Arabia</option>
+<option>Singapore</option>
+<option>Malaysia</option>
+<option>Germany</option>
+<option>France</option>
+<option>Japan</option>
+<option>Other</option>
+</select>
+
+</div>
+
+<div class="field">
+<label>Photo Type</label>
+<select id="photoType" onchange="photoTypeChanged()"></select>
+</div>
+
+<div class="field">
+<label>Width (px)</label>
+<input id="photoW" type="number" value="600" oninput="drawPreview()">
+</div>
+
+<div class="field">
+<label>Height (px)</label>
+<input id="photoH" type="number" value="600" oninput="drawPreview()">
+</div>
+
+<div class="field">
+<label>Output Format</label>
+
+<select id="photoFormat" onchange="drawPreview()">
+<option value="image/jpeg">JPG</option>
+<option value="image/png">PNG</option>
+<option value="image/webp">WebP</option>
+</select>
+
+</div>
+
+<div class="field">
+<label>Target Size (KB)</label>
+<input id="photoKB" type="number" value="100">
+</div>
+
+</div>
+
+
+<div class="presets">
+
+<button onclick="photoPreset('square')">Square</button>
+<button onclick="photoPreset('portrait')">Portrait</button>
+<button onclick="photoPreset('landscape')">Landscape</button>
+
+</div>
+
+
+<div class="checkrow">
+<input id="photoCrop" type="checkbox" checked onchange="drawPreview()">
+<label for="photoCrop">Crop to Fit</label>
+</div>
+
+<div class="checkrow">
+<input id="smartZoom" type="checkbox" checked onchange="smartChanged()">
+<label for="smartZoom">Smart Zoom & Center</label>
+</div>
+
+
+<div id="countryNote" class="note"></div>
+
+
+<div class="manual">
+
+<h3>Manual Zoom & Position</h3>
+
+<div class="zoom">
+
+<button onclick="zoomBy(-.05)">−</button>
+
+<input id="zoomSlider" type="range"
+min="1" max="2.5" step=".01" value="1.18"
+oninput="sliderZoom()">
+
+<b id="zoomText">118%</b>
+
+<button onclick="zoomBy(.05)">+</button>
+
+</div>
+
+
+<div class="pos">
+
+<button class="empty">.</button>
+<button onclick="movePhoto(0,-20)">↑</button>
+<button class="empty">.</button>
+
+<button onclick="movePhoto(-20,0)">←</button>
+<button onclick="resetPosition()">⌾</button>
+<button onclick="movePhoto(20,0)">→</button>
+
+<button class="empty">.</button>
+<button onclick="movePhoto(0,20)">↓</button>
+<button class="empty">.</button>
+
+</div>
+
+
+<div class="actions">
+
+<button class="light" onclick="resetPosition()">Reset Position</button>
+<button class="dark" onclick="resetAllPhoto()">Reset All</button>
+
+</div>
+
+<p class="desc" style="text-align:center">
+Drag the image inside the preview with mouse or finger.
+</p>
+
+</div>
+
+
+<div class="preview">
+
+<b>Live Preview</b>
+<br><br>
+
+<canvas id="photoCanvas" width="600" height="600"></canvas>
+
+</div>
+
+
+<button class="primary" onclick="createPhoto()">
+Create Photo
+</button>
+
+</div>
+
+</div>
+
+
+<!-- PDF WORKSPACE -->
+
+<div class="card">
+
+<h2 style="margin-top:0">📄 PDF Tools</h2>
+
+<p class="desc">
+Compress, convert, merge and split PDF files directly in your browser.
+</p>
+
+<div class="pdf-tabs">
+
+<button class="pdf-tab active" onclick="openPdfTool('pdfCompress',this)">
+Compress PDF
+</button>
+
+<button class="pdf-tab" onclick="openPdfTool('imagePdf',this)">
+Image → PDF
+</button>
+
+<button class="pdf-tab" onclick="openPdfTool('pdfJpg',this)">
+PDF → JPG
+</button>
+
+<button class="pdf-tab" onclick="openPdfTool('mergePdf',this)">
+Merge PDF
+</button>
+
+<button class="pdf-tab" onclick="openPdfTool('splitPdf',this)">
+Split PDF
+</button>
+
+</div>
+
+
+<!-- PDF COMPRESS -->
+
+<div id="pdfCompress" class="pdf-tool active">
+
+<h3>📦 Compress PDF</h3>
+
+<div class="pdf-box">
+
+<input id="pdfCompressInput"
+type="file"
+accept="application/pdf"
+style="display:block;width:100%;margin-bottom:12px">
+
+<div id="pdfCompressInfo" class="pdf-file-list">
+No PDF selected.
+</div>
+
+</div>
+
+<div class="grid" style="margin-top:13px">
+
+<div class="field">
+
+<label>Image Quality</label>
+
+<select id="pdfQuality">
+
+<option value=".85">High</option>
+<option value=".70" selected>Balanced</option>
+<option value=".55">Small</option>
+<option value=".40">Very Small</option>
+
+</select>
+
+</div>
+
+<div class="field">
+
+<label>Render Scale</label>
+
+<select id="pdfScale">
+
+<option value="1">1×</option>
+<option value="1.25" selected>1.25×</option>
+<option value="1.5">1.5×</option>
+
+</select>
+
+</div>
+
+</div>
+
+<div class="pdf-warning" style="margin-top:13px">
+This compression rebuilds PDF pages as images. Text may no longer remain selectable.
+</div>
+
+<button class="primary" onclick="compressPDF()">
+Compress PDF
+</button>
+
+<div id="compressPDFResult"></div>
+
+</div>
+
+
+<!-- IMAGE TO PDF -->
+
+<div id="imagePdf" class="pdf-tool">
+
+<h3>🖼️ Image → PDF</h3>
+
+<div class="pdf-box">
+
+<input id="imagePdfInput"
+type="file"
+accept="image/jpeg,image/png,image/webp"
+multiple
+style="display:block;width:100%;margin-bottom:12px">
+
+<div id="imagePdfList" class="pdf-file-list">
+No images selected.
+</div>
+
+</div>
+
+<button class="primary" onclick="imagesToPDF()">
+Create PDF
+</button>
+
+<div id="imagePDFResult"></div>
+
+</div>
+
+
+<!-- PDF TO JPG -->
+
+<div id="pdfJpg" class="pdf-tool">
+
+<h3>📄 PDF → JPG</h3>
+
+<div class="pdf-box">
+
+<input id="pdfJpgInput"
+type="file"
+accept="application/pdf"
+style="display:block;width:100%;margin-bottom:12px">
+
+<div id="pdfJpgInfo" class="pdf-file-list">
+No PDF selected.
+</div>
+
+</div>
+
+<div class="field" style="margin-top:13px">
+
+<label>JPG Quality</label>
+
+<select id="jpgQuality">
+<option value=".95">High</option>
+<option value=".85" selected>Balanced</option>
+<option value=".70">Small</option>
+</select>
+
+</div>
+
+<button class="primary" onclick="pdfToJPG()">
+Convert PDF to JPG
+</button>
+
+<div id="pdfJPGResult"></div>
+
+<div id="pdfJPGPages" class="page-grid"></div>
+
+</div>
+
+
+<!-- MERGE PDF -->
+
+<div id="mergePdf" class="pdf-tool">
+
+<h3>🔗 Merge PDF</h3>
+
+<div class="pdf-box">
+
+<input id="mergePdfInput"
+type="file"
+accept="application/pdf"
+multiple
+style="display:block;width:100%;margin-bottom:12px">
+
+<div id="mergePdfList" class="pdf-file-list">
+Choose at least two PDF files.
+</div>
+
+</div>
+
+<button class="primary" onclick="mergePDFs()">
+Merge PDFs
+</button>
+
+<div id="mergePDFResult"></div>
+
+</div>
+
+
+<!-- SPLIT PDF -->
+
+<div id="splitPdf" class="pdf-tool">
+
+<h3>✂️ Split PDF</h3>
+
+<div class="pdf-box">
+
+<input id="splitPdfInput"
+type="file"
+accept="application/pdf"
+style="display:block;width:100%;margin-bottom:12px">
+
+<div id="splitPdfInfo" class="pdf-file-list">
+No PDF selected.
+</div>
+
+</div>
+
+<div class="field" style="margin-top:13px">
+
+<label>Pages to extract</label>
+
+<input id="splitRanges"
+type="text"
+placeholder="Example: 1-3,5,8-10">
+
+</div>
+
+<button class="primary" onclick="splitPDF()">
+Create Split PDF
+</button>
+
+<div id="splitPDFResult"></div>
+
+</div>
+
+
+</div>
+
+
+<!-- IMAGE RESULT -->
+
+<div id="imageResult" class="card result">
+
+<h2>Image Result</h2>
+
+<div class="result-grid">
+
+<div class="result-box">Original<b id="rOriginal">-</b></div>
+<div class="result-box">After<b id="rAfter">-</b></div>
+<div class="result-box">Format<b id="rFormat">-</b></div>
+<div class="result-box">Status<b id="rStatus">-</b></div>
+
+</div>
+
+<div class="preview">
+
+<canvas id="resultCanvas"></canvas>
+
+</div>
+
+<a id="imageDownload" class="download">
+⬇ Download Result
+</a>
+
+</div>
+
+
+<div class="privacy">
+Your image and PDF files are processed directly in your browser and are not intentionally uploaded or stored on our servers.
+</div>
+
+<div class="footer">
+UPLOADREADY
+</div>
+
+</div>
+
+
+<script>
+
+/* =========================================================
+   COMMON
+========================================================= */
+
+function $(id){
+return document.getElementById(id);
+}
+
+function bytes(n){
+
+if(n<1024)return n+" B";
+
+if(n<1048576)return (n/1024).toFixed(1)+" KB";
+
+return (n/1048576).toFixed(2)+" MB";
+
+}
+
+function mimeName(m){
+
+if(m==="image/jpeg")return "JPG";
+if(m==="image/png")return "PNG";
+if(m==="image/webp")return "WebP";
+
+return m||"Unknown";
+
+}
+
+function ext(m){
+
+if(m==="image/png")return "png";
+if(m==="image/webp")return "webp";
+
+return "jpg";
+
+}
+
+function showStatus(text,type){
+
+$("status").className="status show "+type;
+$("status").textContent=text;
+
+}
+
+function blobFromCanvas(canvas,mime,quality){
+
+return new Promise(function(resolve){
+
+canvas.toBlob(function(blob){
+
+resolve(blob);
+
+},mime,quality);
+
+});
+
+}
+
+
+/* =========================================================
+   IMAGE VARIABLES
+========================================================= */
+
+let imageFile=null;
+let imageObj=null;
+let imageResultBlob=null;
+
+let photoZoom=1.18;
+let photoX=0;
+let photoY=0;
+
+let dragging=false;
+let dragStartX=0;
+let dragStartY=0;
+let dragOrigX=0;
+let dragOrigY=0;
+
+
+/* =========================================================
+   IMAGE UPLOAD
+========================================================= */
+
+$("fileInput").addEventListener("change",function(e){
+
+loadImageFile(e.target.files[0]);
+
+});
+
+$("imageUploadBox").addEventListener("dragover",function(e){
+
+e.preventDefault();
+
+});
+
+$("imageUploadBox").addEventListener("drop",function(e){
+
+e.preventDefault();
+
+loadImageFile(e.dataTransfer.files[0]);
+
+});
+
+
+function loadImageFile(file){
+
+if(!file || !file.type.startsWith("image/")){
+
+showStatus("Please choose an image file.","error");
+
+return;
+
+}
+
+imageFile=file;
+
+let reader=new FileReader();
+
+reader.onload=function(e){
+
+let im=new Image();
+
+im.onload=function(){
+
+imageObj=im;
+
+$("fileInfo").style.display="block";
+
+$("fileName").textContent=file.name;
+
+$("origSize").textContent=bytes(file.size);
+
+$("origDim").textContent=
+im.naturalWidth+" × "+im.naturalHeight;
+
+$("origFormat").textContent=mimeName(file.type);
+
+$("origStatus").textContent="Ready";
+
+$("imageWorkspace").style.display="block";
+
+photoZoom=1.18;
+photoX=0;
+photoY=0;
+
+$("smartZoom").checked=true;
+
+updateZoom();
+
+countryChanged();
+
+runChecker();
+
+drawPreview();
+
+showStatus("Image loaded successfully.","success");
+
+};
+
+im.onerror=function(){
+
+showStatus("Could not read this image.","error");
+
+};
+
+im.src=e.target.result;
+
+};
+
+reader.readAsDataURL(file);
+
+}
+
+
+/* =========================================================
+   IMAGE TABS
+========================================================= */
+
+function openImageTool(id,button){
+
+document.querySelectorAll("#imageWorkspace .tool")
+.forEach(function(x){
+
+x.classList.remove("active");
+
+});
+
+document.querySelectorAll("#imageWorkspace .tab")
+.forEach(function(x){
+
+x.classList.remove("active");
+
+});
+
+$(id).classList.add("active");
+
+if(button)button.classList.add("active");
+
+if(id==="photo")drawPreview();
+
+}
+
+
+/* =========================================================
+   CHECKER
+========================================================= */
+
+function runChecker(){
+
+if(!imageFile || !imageObj){
+
+resetChecker();
+
+return;
+
+}
+
+let sizeOK=imageFile.size<=1024*1024;
+
+let dimensionOK=
+imageObj.naturalWidth<=6000 &&
+imageObj.naturalHeight<=6000;
+
+let formatOK=[
+"image/jpeg",
+"image/png",
+"image/webp"
+].includes(imageFile.type);
+
+let good=sizeOK&&dimensionOK&&formatOK;
+
+$("overall").className=
+"overall "+(good?"good":"warn");
+
+$("overall").textContent=good
+?"✅ No major generic technical problem detected. Check the destination requirements before submission."
+:"⚠️ Potential upload problem detected. Use Fix My File.";
+
+$("checks").innerHTML=`
+
+<div class="check ${sizeOK?"good":"warn"}">
+<b>📦 File Size</b>
+${bytes(imageFile.size)} ${sizeOK?"— OK":"— Large file"}
+</div>
+
+<div class="check ${dimensionOK?"good":"warn"}">
+<b>📐 Dimensions</b>
+${imageObj.naturalWidth} × ${imageObj.naturalHeight} px
+${dimensionOK?"— OK":"— Very large"}
+</div>
+
+<div class="check ${formatOK?"good":"bad"}">
+<b>🖼️ Format</b>
+${mimeName(imageFile.type)}
+${formatOK?"— Supported":"— Unsupported"}
+</div>
+
+<div class="check ${good?"good":"warn"}">
+<b>🎯 Upload Status</b>
+${good?"Technically ready":"May need fixing"}
+</div>
+
+`;
+
+}
+
+
+/* =========================================================
+   UPDATE CHECKER AFTER FIX
+========================================================= */
+
+function updateCheckerAfterResult(blob,mime,w,h){
+
+if(!imageFile || !imageObj || !blob)return;
+
+let sizeOK=blob.size<=1024*1024;
+
+let dimensionOK=
+w<=6000 &&
+h<=6000;
+
+let formatOK=[
+"image/jpeg",
+"image/png",
+"image/webp"
+].includes(mime);
+
+let good=sizeOK&&dimensionOK&&formatOK;
+
+$("overall").className=
+"overall "+(good?"good":"warn");
+
+$("overall").textContent=good
+?"✅ Problem fixed. Your file is ready."
+:"⚠️ File was processed, but another technical limit may still need attention.";
+
+$("checks").innerHTML=`
+
+<div class="check ${sizeOK?"good":"warn"}">
+<b>📦 File Size</b>
+${bytes(blob.size)} ${sizeOK?"— OK":"— Still large"}
+</div>
+
+<div class="check ${dimensionOK?"good":"warn"}">
+<b>📐 Dimensions</b>
+${w} × ${h} px
+${dimensionOK?"— OK":"— Very large"}
+</div>
+
+<div class="check ${formatOK?"good":"bad"}">
+<b>🖼️ Format</b>
+${mimeName(mime)}
+${formatOK?"— Supported":"— Unsupported"}
+</div>
+
+<div class="check ${good?"good":"warn"}">
+<b>🎯 Upload Status</b>
+${good?"Problem fixed — Ready":"Another fix may be required"}
+</div>
+
+`;
+
+}
+
+
+function resetChecker(){
+
+$("overall").className="overall neutral";
+
+$("overall").textContent=
+"Upload an image above to start checking.";
+
+$("checks").innerHTML=`
+
+<div class="check"><b>📦 File Size</b>Waiting for image</div>
+<div class="check"><b>📐 Dimensions</b>Waiting for image</div>
+<div class="check"><b>🖼️ Format</b>Waiting for image</div>
+<div class="check"><b>🎯 Upload Status</b>Waiting for image</div>
+
+`;
+
+}
+
+
+function fixUploadProblem(){
+
+if(!imageFile){
+
+showStatus("Please upload an image first.","error");
+
+return;
+
+}
+
+if(![
+"image/jpeg",
+"image/png",
+"image/webp"
+].includes(imageFile.type)){
+
+openImageTool(
+"convert",
+document.querySelector('.tab[onclick*="convert"]')
+);
+
+showStatus(
+"Convert the file to JPG, PNG or WebP.",
+"info"
+);
+
+return;
+
+}
+
+if(imageFile.size>1024*1024){
+
+openImageTool(
+"compress",
+document.querySelector('.tab[onclick*="compress"]')
+);
+
+$("targetKB").value=500;
+
+showStatus(
+"Compression target set to 500 KB.",
+"info"
+);
+
+return;
+
+}
+
+if(
+imageObj.naturalWidth>6000 ||
+imageObj.naturalHeight>6000
+){
+
+openImageTool(
+"resize",
+document.querySelector('.tab[onclick*="resize"]')
+);
+
+$("resizeW").value=Math.min(
+imageObj.naturalWidth,
+3000
+);
+
+$("resizeH").value=Math.min(
+imageObj.naturalHeight,
+3000
+);
+
+showStatus(
+"Resize settings prepared.",
+"info"
+);
+
+return;
+
+}
+
+openImageTool(
+"compress",
+document.querySelector('.tab[onclick*="compress"]')
+);
+
+showStatus(
+"No major problem detected. Compression can be used if the destination has a smaller size limit.",
+"success"
+);
+
+}
+
+
+/* =========================================================
+   QUICK SIZE
+========================================================= */
+
+function setQuickSize(n){
+
+$("targetKB").value=n;
+
+}
+
+
+/* =========================================================
+   IMAGE PROCESSING
+========================================================= */
+
+async function processImage(type){
+
+if(!imageObj){
+
+showStatus("Please upload an image first.","error");
+
+return;
+
+}
+
+try{
+
+if(type==="compress")await compressImage();
+else if(type==="resize")await resizeImage();
+else await convertImage();
+
+}catch(e){
+
+console.error(e);
+
+showStatus(
+"Could not process the image.",
+"error"
+);
+
+}
+
+}
+
+
+/* =========================================================
+   COMPRESS
+========================================================= */
+
+async function compressImage(){
+
+let target=
+Math.max(
+5,
+Number($("targetKB").value)||200
+)*1024;
+
+let mime=$("compressFormat").value;
+
+let w=imageObj.naturalWidth;
+let h=imageObj.naturalHeight;
+
+let canvas=document.createElement("canvas");
+
+canvas.width=w;
+canvas.height=h;
+
+let ctx=canvas.getContext("2d");
+
+if(mime==="image/jpeg"){
+
+ctx.fillStyle="#fff";
+ctx.fillRect(0,0,w,h);
+
+}
+
+ctx.drawImage(imageObj,0,0,w,h);
+
+let blob=null;
+
+
+if(mime==="image/png"){
+
+blob=await blobFromCanvas(canvas,mime);
+
+for(let i=0;i<12 && blob.size>target;i++){
+
+let ratio=Math.sqrt(target/blob.size)*.96;
+
+w=Math.max(1,Math.floor(w*ratio));
+h=Math.max(1,Math.floor(h*ratio));
+
+canvas.width=w;
+canvas.height=h;
+
+ctx=canvas.getContext("2d");
+
+ctx.drawImage(imageObj,0,0,w,h);
+
+blob=await blobFromCanvas(canvas,mime);
+
+}
+
+}else{
+
+let low=.05;
+let high=.95;
+let best=null;
+
+for(let i=0;i<14;i++){
+
+let q=(low+high)/2;
+
+let b=await blobFromCanvas(
+canvas,
+mime,
+q
+);
+
+if(b.size<=target){
+
+best=b;
+low=q;
+
+}else{
+
+high=q;
+
+}
+
+}
+
+if(!best){
+
+for(let k=0;k<10&&!best;k++){
+
+w=Math.max(1,Math.floor(w*.86));
+h=Math.max(1,Math.floor(h*.86));
+
+canvas.width=w;
+canvas.height=h;
+
+ctx=canvas.getContext("2d");
+
+if(mime==="image/jpeg"){
+
+ctx.fillStyle="#fff";
+ctx.fillRect(0,0,w,h);
+
+}
+
+ctx.drawImage(imageObj,0,0,w,h);
+
+low=.05;
+high=.95;
+
+for(let i=0;i<12;i++){
+
+let q=(low+high)/2;
+
+let b=await blobFromCanvas(
+canvas,
+mime,
+q
+);
+
+if(b.size<=target){
+
+best=b;
+low=q;
+
+}else{
+
+high=q;
+
+}
+
+}
+
+}
+
+}
+
+blob=best||await blobFromCanvas(
+canvas,
+mime,
+.5
+);
+
+}
+
+
+showImageResult(
+blob,
+mime,
+canvas.width,
+canvas.height,
+target
+);
+
+}
+
+
+/* =========================================================
+   RESIZE
+========================================================= */
+
+async function resizeImage(){
+
+let w=Math.max(
+1,
+Number($("resizeW").value)||600
+);
+
+let h=Math.max(
+1,
+Number($("resizeH").value)||600
+);
+
+if($("keepAspect").checked){
+
+let ratio=
+imageObj.naturalWidth/
+imageObj.naturalHeight;
+
+h=Math.round(w/ratio);
+
+}
+
+let canvas=document.createElement("canvas");
+
+canvas.width=w;
+canvas.height=h;
+
+let ctx=canvas.getContext("2d");
+
+ctx.fillStyle="#fff";
+ctx.fillRect(0,0,w,h);
+
+ctx.drawImage(
+imageObj,
+0,
+0,
+w,
+h
+);
+
+let blob=await blobFromCanvas(
+canvas,
+"image/jpeg",
+.92
+);
+
+showImageResult(
+blob,
+"image/jpeg",
+w,
+h
+);
+
+}
+
+
+/* =========================================================
+   CONVERT
+========================================================= */
+
+async function convertImage(){
+
+let mime=$("convertFormat").value;
+
+let w=imageObj.naturalWidth;
+let h=imageObj.naturalHeight;
+
+let canvas=document.createElement("canvas");
+
+canvas.width=w;
+canvas.height=h;
+
+let ctx=canvas.getContext("2d");
+
+if(mime==="image/jpeg"){
+
+ctx.fillStyle="#fff";
+ctx.fillRect(0,0,w,h);
+
+}
+
+ctx.drawImage(
+imageObj,
+0,
+0,
+w,
+h
+);
+
+let blob=await blobFromCanvas(
+canvas,
+mime,
+.92
+);
+
+showImageResult(
+blob,
+mime,
+w,
+h
+);
+
+}
+
+
+/* =========================================================
+   IMAGE RESULT
+========================================================= */
+
+function showImageResult(
+blob,
+mime,
+w,
+h,
+target
+){
+
+imageResultBlob=blob;
+
+$("imageResult").style.display="block";
+
+$("rOriginal").textContent=bytes(imageFile.size);
+
+$("rAfter").textContent=
+bytes(blob.size)+" • "+w+" × "+h;
+
+$("rFormat").textContent=mimeName(mime);
+
+$("rStatus").textContent=
+target && blob.size<=target
+?"Target reached"
+:"Ready";
+
+updateCheckerAfterResult(blob,mime,w,h);
+
+let canvas=$("resultCanvas");
+
+canvas.width=w;
+canvas.height=h;
+
+let ctx=canvas.getContext("2d");
+
+let url=URL.createObjectURL(blob);
+
+let im=new Image();
+
+im.onload=function(){
+
+ctx.drawImage(
+im,
+0,
+0,
+w,
+h
+);
+
+};
+
+im.src=url;
+
+let link=$("imageDownload");
+
+link.href=url;
+
+link.download=
+(
+imageFile
+?imageFile.name.replace(/\.[^/.]+$/,"")
+:"uploadready"
+)+
+"_UPLOADREADY."+
+ext(mime);
+
+$("imageResult").scrollIntoView({
+behavior:"smooth"
+});
+
+}
+
+
+/* =========================================================
+   COUNTRY PHOTO MAKER
+========================================================= */
+
+const countryProfiles={
+
+India:{
+
+"Passport Digital":{
+w:600,h:600,kb:100,
+note:"India digital preset: square 2 × 2 inch style photo, full face/full head, centered head and plain white/off-white background. Verify the exact application requirement before submission."
+},
+
+"Passport Collection Centre":{
+w:700,h:900,kb:200,
+note:"Preset for certain Indian collection-centre requirements. Guidance can specify a 3.5 × 4.5 cm printed photograph. Verify the exact centre/application requirement."
+},
+
+Custom:{
+w:600,h:600,kb:100,
+note:"Custom mode. Enter the exact requirement provided by the authority or website."
+}
+
+},
+
+USA:{
+
+"Visa / DV":{
+w:600,h:600,kb:240,
+note:"USA visa/DV preset: square JPEG, 600 × 600 to 1200 × 1200 px and maximum 240 KB. Verify the current application instructions."
+},
+
+Passport:{
+w:600,h:600,kb:240,
+note:"USA passport-style square preset. Official requirements include detailed head positioning and background rules. Verify the current application instructions."
+},
+
+Custom:{
+w:600,h:600,kb:240,
+note:"Custom mode. Enter the exact requirement provided by the authority or website."
+}
+
+}
+
+};
+
+[
+"UK",
+"Canada",
+"Australia",
+"UAE",
+"Saudi Arabia",
+"Singapore",
+"Malaysia",
+"Germany",
+"France",
+"Japan",
+"Other"
+].forEach(function(c){
+
+countryProfiles[c]={
+
+Custom:{
+w:600,
+h:600,
+kb:200,
+note:"Country-specific preset is not configured yet. Use Custom mode and enter the exact official requirement."
+}
+
+};
+
+});
+
+
+function countryChanged(){
+
+let country=$("country").value;
+
+let profiles=
+countryProfiles[country]||
+countryProfiles.Other;
+
+$("photoType").innerHTML=
+Object.keys(profiles)
+.map(function(x){
+
+return "<option>"+x+"</option>";
+
+})
+.join("");
+
+photoTypeChanged();
+
+}
+
+
+function photoTypeChanged(){
+
+let country=$("country").value;
+
+let type=$("photoType").value;
+
+let p=
+(
+countryProfiles[country]||
+countryProfiles.Other
+)[type];
+
+if(!p)return;
+
+$("photoW").value=p.w;
+$("photoH").value=p.h;
+$("photoKB").value=p.kb;
+$("photoFormat").value="image/jpeg";
+
+$("countryNote").textContent=p.note;
+
+resetAllPhoto();
+drawPreview();
+
+}
+
+
+function photoPreset(type){
+
+if(type==="square"){
+
+$("photoW").value=600;
+$("photoH").value=600;
+
+}
+
+if(type==="portrait"){
+
+$("photoW").value=600;
+$("photoH").value=800;
+
+}
+
+if(type==="landscape"){
+
+$("photoW").value=800;
+$("photoH").value=600;
+
+}
+
+drawPreview();
+
+}
+
+
+/* =========================================================
+   PHOTO ZOOM
+========================================================= */
+
+function updateZoom(){
+
+$("zoomSlider").value=photoZoom;
+
+$("zoomText").textContent=
+Math.round(photoZoom*100)+"%";
+
+}
+
+function sliderZoom(){
+
+photoZoom=Number(
+$("zoomSlider").value
+)||1;
+
+$("smartZoom").checked=false;
+
+drawPreview();
+
+}
+
+function zoomBy(n){
+
+photoZoom=Math.max(
+1,
+Math.min(
+2.5,
+photoZoom+n
+)
+);
+
+$("smartZoom").checked=false;
+
+updateZoom();
+drawPreview();
+
+}
+
+function smartChanged(){
+
+photoZoom=
+$("smartZoom").checked
+?1.18
+:1;
+
+updateZoom();
+drawPreview();
+
+}
+
+function movePhoto(x,y){
+
+photoX+=x;
+photoY+=y;
+
+$("smartZoom").checked=false;
+
+drawPreview();
+
+}
+
+function resetPosition(){
+
+photoX=0;
+photoY=0;
+
+drawPreview();
+
+}
+
+function resetAllPhoto(){
+
+photoZoom=1.18;
+photoX=0;
+photoY=0;
+
+$("smartZoom").checked=true;
+
+updateZoom();
+
+}
+
+
+/* =========================================================
+   PHOTO CROP
+========================================================= */
+
+function getPhotoCrop(){
+
+let sw=imageObj.naturalWidth;
+let sh=imageObj.naturalHeight;
+
+let tw=Number($("photoW").value)||600;
+let th=Number($("photoH").value)||600;
+
+let sourceRatio=sw/sh;
+let targetRatio=tw/th;
+
+let cw,ch;
+
+if(sourceRatio>targetRatio){
+
+ch=sh;
+cw=sh*targetRatio;
+
+}else{
+
+cw=sw;
+ch=sw/targetRatio;
+
+}
+
+cw/=photoZoom;
+ch/=photoZoom;
+
+let sx=(sw-cw)/2;
+let sy=(sh-ch)/2;
+
+
+/*
+Protect the top/head area.
+Extra lower background can be cropped.
+*/
+
+sy-=Math.min(
+(sh-ch)*.12,
+80
+);
+
+sx-=photoX*(cw/tw);
+sy-=photoY*(ch/th);
+
+sx=Math.max(
+0,
+Math.min(
+sw-cw,
+sx
+)
+);
+
+sy=Math.max(
+0,
+Math.min(
+sh-ch,
+sy
+)
+);
+
+return{
+sx:sx,
+sy:sy,
+sw:cw,
+sh:ch,
+tw:tw,
+th:th
+};
+
+}
+
+
+function drawPhotoTo(canvas){
+
+let tw=Number($("photoW").value)||600;
+let th=Number($("photoH").value)||600;
+
+canvas.width=tw;
+canvas.height=th;
+
+let ctx=canvas.getContext("2d");
+
+ctx.fillStyle="#fff";
+ctx.fillRect(0,0,tw,th);
+
+if(!$("photoCrop").checked){
+
+ctx.drawImage(
+imageObj,
+0,
+0,
+tw,
+th
+);
+
+return;
+
+}
+
+let p=getPhotoCrop();
+
+ctx.drawImage(
+imageObj,
+p.sx,
+p.sy,
+p.sw,
+p.sh,
+0,
+0,
+p.tw,
+p.th
+);
+
+}
+
+
+function drawPreview(){
+
+if(!imageObj)return;
+
+drawPhotoTo(
+$("photoCanvas")
+);
+
+}
+
+
+/* =========================================================
+   CREATE PHOTO
+========================================================= */
+
+async function createPhoto(){
+
+if(!imageObj){
+
+showStatus(
+"Please upload an image first.",
+"error"
+);
+
+return;
+
+}
+
+let w=Number($("photoW").value)||600;
+let h=Number($("photoH").value)||600;
+
+let mime=$("photoFormat").value;
+
+let target=
+(Number($("photoKB").value)||200)*1024;
+
+let canvas=document.createElement("canvas");
+
+drawPhotoTo(canvas);
+
+let blob=
+await blobFromCanvas(
+canvas,
+mime,
+.95
+);
+
+if(
+blob.size>target &&
+mime!=="image/png"
+){
+
+let low=.05;
+let high=.95;
+let best=null;
+
+for(let i=0;i<14;i++){
+
+let q=(low+high)/2;
+
+let b=
+await blobFromCanvas(
+canvas,
+mime,
+q
+);
+
+if(b.size<=target){
+
+best=b;
+low=q;
+
+}else{
+
+high=q;
+
+}
+
+}
+
+if(best)blob=best;
+
+}
+
+showImageResult(
+blob,
+mime,
+w,
+h,
+target
+);
+
+}
+
+
+/* =========================================================
+   PHOTO DRAG
+========================================================= */
+
+$("photoCanvas").addEventListener(
+"mousedown",
+function(e){
+
+dragging=true;
+
+dragStartX=e.clientX;
+dragStartY=e.clientY;
+
+dragOrigX=photoX;
+dragOrigY=photoY;
+
+$("smartZoom").checked=false;
+
+}
+);
+
+window.addEventListener(
+"mousemove",
+function(e){
+
+if(!dragging)return;
+
+photoX=
+dragOrigX+
+e.clientX-
+dragStartX;
+
+photoY=
+dragOrigY+
+e.clientY-
+dragStartY;
+
+drawPreview();
+
+}
+);
+
+window.addEventListener(
+"mouseup",
+function(){
+
+dragging=false;
+
+}
+);
+
+
+$("photoCanvas").addEventListener(
+"touchstart",
+function(e){
+
+let t=e.touches[0];
+
+dragging=true;
+
+dragStartX=t.clientX;
+dragStartY=t.clientY;
+
+dragOrigX=photoX;
+dragOrigY=photoY;
+
+$("smartZoom").checked=false;
+
+e.preventDefault();
+
+},
+{passive:false}
+);
+
+
+$("photoCanvas").addEventListener(
+"touchmove",
+function(e){
+
+if(!dragging)return;
+
+let t=e.touches[0];
+
+photoX=
+dragOrigX+
+t.clientX-
+dragStartX;
+
+photoY=
+dragOrigY+
+t.clientY-
+dragStartY;
+
+drawPreview();
+
+e.preventDefault();
+
+},
+{passive:false}
+);
+
+
+$("photoCanvas").addEventListener(
+"touchend",
+function(){
+
+dragging=false;
+
+}
+);
+
+
+/* =========================================================
+   KEYBOARD POSITION
+========================================================= */
+
+document.addEventListener(
+"keydown",
+function(e){
+
+if(!$("photo").classList.contains("active"))return;
+
+if(
+["INPUT","SELECT","TEXTAREA"].includes(
+e.target.tagName
+)
+)return;
+
+if(e.key==="ArrowUp")movePhoto(0,-20);
+if(e.key==="ArrowDown")movePhoto(0,20);
+if(e.key==="ArrowLeft")movePhoto(-20,0);
+if(e.key==="ArrowRight")movePhoto(20,0);
+
+}
+);
+
+
+/* =========================================================
+   PDF VARIABLES
+========================================================= */
+
+let pdfCompressFile=null;
+let pdfJpgFile=null;
+let splitPDFFile=null;
+
+let imagePDFFiles=[];
+let mergePDFFiles=[];
+
+
+/* PDF.JS WORKER */
+
+if(window.pdfjsLib){
+
+pdfjsLib.GlobalWorkerOptions.workerSrc=
+"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+
+}
+
+
+/* =========================================================
+   PDF TABS
+========================================================= */
+
+function openPdfTool(id,button){
+
+document.querySelectorAll(".pdf-tool")
+.forEach(function(x){
+
+x.classList.remove("active");
+
+});
+
+document.querySelectorAll(".pdf-tab")
+.forEach(function(x){
+
+x.classList.remove("active");
+
+});
+
+$(id).classList.add("active");
+
+if(button)button.classList.add("active");
+
+}
+
+
+/* =========================================================
+   PDF INPUTS
+========================================================= */
+
+$("pdfCompressInput").addEventListener(
+"change",
+async function(){
+
+pdfCompressFile=this.files[0]||null;
+
+if(pdfCompressFile){
+
+$("pdfCompressInfo").innerHTML=
+"<b>"+pdfCompressFile.name+
+"</b><br>"+bytes(pdfCompressFile.size);
+
+}
+
+});
+
+
+$("imagePdfInput").addEventListener(
+"change",
+function(){
+
+imagePDFFiles=
+Array.from(this.files||[]);
+
+$("imagePdfList").innerHTML=
+imagePDFFiles.length
+?imagePDFFiles.map(function(f,i){
+
+return(
+(i+1)+". "+
+f.name+
+" — "+
+bytes(f.size)
+);
+
+}).join("<br>")
+:"No images selected.";
+
+});
+
+
+$("pdfJpgInput").addEventListener(
+"change",
+function(){
+
+pdfJpgFile=this.files[0]||null;
+
+if(pdfJpgFile){
+
+$("pdfJpgInfo").innerHTML=
+"<b>"+pdfJpgFile.name+
+"</b><br>"+
+bytes(pdfJpgFile.size);
+
+}
+
+});
+
+
+$("mergePdfInput").addEventListener(
+"change",
+function(){
+
+mergePDFFiles=
+Array.from(this.files||[]);
+
+$("mergePdfList").innerHTML=
+mergePDFFiles.length
+?mergePDFFiles.map(function(f,i){
+
+return(
+(i+1)+". "+
+f.name+
+" — "+
+bytes(f.size)
+);
+
+}).join("<br>")
+:"Choose at least two PDF files.";
+
+});
+
+
+$("splitPdfInput").addEventListener(
+"change",
+function(){
+
+splitPDFFile=this.files[0]||null;
+
+if(splitPDFFile){
+
+$("splitPdfInfo").innerHTML=
+"<b>"+splitPDFFile.name+
+"</b><br>"+
+bytes(splitPDFFile.size);
+
+}
+
+});
+
+
+/* =========================================================
+   PDF.JS DOCUMENT
+========================================================= */
+
+async function getPDFDocument(file){
+
+if(!window.pdfjsLib){
+
+throw new Error(
+"PDF engine could not load. Refresh the page."
+);
+
+}
+
+let data=
+new Uint8Array(
+await file.arrayBuffer()
+);
+
+return await pdfjsLib
+.getDocument({data:data})
+.promise;
+
+}
+
+
+/* =========================================================
+   COMPRESS PDF
+========================================================= */
+
+async function compressPDF(){
+
+if(!pdfCompressFile){
+
+showStatus(
+"Please choose a PDF first.",
+"error"
+);
+
+return;
+
+}
+
+try{
+
+showStatus(
+"Compressing PDF in your browser...",
+"info"
+);
+
+let src=
+await getPDFDocument(
+pdfCompressFile
+);
+
+let out=
+await PDFLib.PDFDocument.create();
+
+let quality=
+Number($("pdfQuality").value);
+
+let scale=
+Number($("pdfScale").value);
+
+
+for(
+let i=1;
+i<=src.numPages;
+i++
+){
+
+let page=
+await src.getPage(i);
+
+let viewport=
+page.getViewport({
+scale:scale
+});
+
+let canvas=
+document.createElement("canvas");
+
+canvas.width=
+Math.ceil(viewport.width);
+
+canvas.height=
+Math.ceil(viewport.height);
+
+await page.render({
+
+canvasContext:
+canvas.getContext("2d"),
+
+viewport:viewport
+
+}).promise;
+
+
+let jpgData=
+canvas.toDataURL(
+"image/jpeg",
+quality
+);
+
+let jpg=
+await out.embedJpg(
+jpgData
+);
+
+let newPage=
+out.addPage([
+viewport.width,
+viewport.height
+]);
+
+newPage.drawImage(
+jpg,
+{
+x:0,
+y:0,
+width:viewport.width,
+height:viewport.height
+}
+);
+
+}
+
+
+let result=
+await out.save();
+
+let blob=
+new Blob(
+[result],
+{
+type:"application/pdf"
+}
+);
+
+let url=
+URL.createObjectURL(blob);
+
+$("compressPDFResult").innerHTML=
+`
+<div class="pdf-result">
+
+Original: ${bytes(pdfCompressFile.size)}
+<br>
+Compressed: ${bytes(blob.size)}
+
+<a
+class="download"
+href="${url}"
+download="${pdfCompressFile.name.replace(/\.pdf$/i,"")}_compressed.pdf"
+>
+⬇ Download Compressed PDF
+</a>
+
+</div>
+`;
+
+showStatus(
+"PDF compression complete.",
+"success"
+);
+
+}catch(e){
+
+console.error(e);
+
+showStatus(
+"Could not compress this PDF.",
+"error"
+);
+
+}
+
+}
+
+
+/* =========================================================
+   IMAGE TO PDF
+========================================================= */
+
+async function imagesToPDF(){
+
+if(!imagePDFFiles.length){
+
+showStatus(
+"Please choose one or more images.",
+"error"
+);
+
+return;
+
+}
+
+try{
+
+showStatus(
+"Creating PDF...",
+"info"
+);
+
+let out=
+await PDFLib.PDFDocument.create();
+
+
+for(
+let file of imagePDFFiles
+){
+
+let image;
+
+if(file.type==="image/png"){
+
+image=
+await out.embedPng(
+await file.arrayBuffer()
+);
+
+}else{
+
+let url=
+URL.createObjectURL(file);
+
+let im=
+await loadImage(url);
+
+let canvas=
+document.createElement("canvas");
+
+canvas.width=
+im.naturalWidth;
+
+canvas.height=
+im.naturalHeight;
+
+canvas
+.getContext("2d")
+.drawImage(im,0,0);
+
+URL.revokeObjectURL(url);
+
+image=
+await out.embedJpg(
+canvas.toDataURL(
+"image/jpeg",
+.92
+)
+);
+
+}
+
+
+let maxW=595;
+let maxH=842;
+
+let ratio=
+image.width/image.height;
+
+let w=maxW;
+let h=w/ratio;
+
+if(h>maxH){
+
+h=maxH;
+w=h*ratio;
+
+}
+
+let page=
+out.addPage([w,h]);
+
+page.drawImage(
+image,
+{
+x:0,
+y:0,
+width:w,
+height:h
+}
+);
+
+}
+
+
+let data=
+await out.save();
+
+let blob=
+new Blob(
+[data],
+{
+type:"application/pdf"
+}
+);
+
+let url=
+URL.createObjectURL(blob);
+
+$("imagePDFResult").innerHTML=
+`
+<div class="pdf-result">
+
+PDF created: ${bytes(blob.size)}
+
+<a
+class="download"
+href="${url}"
+download="UPLOADREADY_images.pdf"
+>
+⬇ Download PDF
+</a>
+
+</div>
+`;
+
+showStatus(
+"PDF created successfully.",
+"success"
+);
+
+}catch(e){
+
+console.error(e);
+
+showStatus(
+"Could not create PDF.",
+"error"
+);
+
+}
+
+}
+
+
+function loadImage(url){
+
+return new Promise(function(resolve,reject){
+
+let im=new Image();
+
+im.onload=function(){
+
+resolve(im);
+
+};
+
+im.onerror=reject;
+
+im.src=url;
+
+});
+
+}
+
+
+/* =========================================================
+   PDF TO JPG
+========================================================= */
+
+async function pdfToJPG(){
+
+if(!pdfJpgFile){
+
+showStatus(
+"Please choose a PDF first.",
+"error"
+);
+
+return;
+
+}
+
+try{
+
+showStatus(
+"Converting PDF pages to JPG...",
+"info"
+);
+
+let doc=
+await getPDFDocument(
+pdfJpgFile
+);
+
+let quality=
+Number($("jpgQuality").value);
+
+$("pdfJPGPages").innerHTML="";
+
+let count=0;
+
+for(
+let i=1;
+i<=doc.numPages;
+i++
+){
+
+let page=
+await doc.getPage(i);
+
+let viewport=
+page.getViewport({
+scale:1.5
+});
+
+let canvas=
+document.createElement("canvas");
+
+canvas.width=
+Math.ceil(viewport.width);
+
+canvas.height=
+Math.ceil(viewport.height);
+
+await page.render({
+
+canvasContext:
+canvas.getContext("2d"),
+
+viewport:viewport
+
+}).promise;
+
+let blob=
+await blobFromCanvas(
+canvas,
+"image/jpeg",
+quality
+);
+
+let url=
+URL.createObjectURL(blob);
+
+let div=
+document.createElement("div");
+
+div.className="page-card";
+
+div.innerHTML=
+`
+<b>Page ${i}</b>
+<br><br>
+`;
+
+let preview=
+document.createElement("canvas");
+
+preview.width=canvas.width;
+preview.height=canvas.height;
+
+preview.getContext("2d")
+.drawImage(
+canvas,
+0,
+0
+);
+
+div.appendChild(preview);
+
+let link=
+document.createElement("a");
+
+link.className="download";
+link.href=url;
+link.download=
+pdfJpgFile.name.replace(
+/\.pdf$/i,
+""
+)+"_page_"+i+".jpg";
+
+link.textContent=
+"⬇ Download Page "+i;
+
+div.appendChild(link);
+
+$("pdfJPGPages").appendChild(div);
+
+count++;
+
+}
+
+$("pdfJPGResult").innerHTML=
+`
+<div class="pdf-result">
+${count} PDF page(s) converted successfully.
+</div>
+`;
+
+showStatus(
+"PDF converted to JPG successfully.",
+"success"
+);
+
+}catch(e){
+
+console.error(e);
+
+showStatus(
+"Could not convert this PDF.",
+"error"
+);
+
+}
+
+}
+
+
+/* =========================================================
+   MERGE PDF
+========================================================= */
+
+async function mergePDFs(){
+
+if(mergePDFFiles.length<2){
+
+showStatus(
+"Please choose at least two PDF files.",
+"error"
+);
+
+return;
+
+}
+
+try{
+
+showStatus(
+"Merging PDFs...",
+"info"
+);
+
+let out=
+await PDFLib.PDFDocument.create();
+
+for(
+let file of mergePDFFiles
+){
+
+let bytesData=
+await file.arrayBuffer();
+
+let src=
+await PDFLib.PDFDocument.load(
+bytesData
+);
+
+let pages=
+await out.copyPages(
+src,
+src.getPageIndices()
+);
+
+pages.forEach(function(page){
+
+out.addPage(page);
+
+});
+
+}
+
+let data=
+await out.save();
+
+let blob=
+new Blob(
+[data],
+{
+type:"application/pdf"
+}
+);
+
+let url=
+URL.createObjectURL(blob);
+
+$("mergePDFResult").innerHTML=
+`
+<div class="pdf-result">
+
+Merged PDF: ${bytes(blob.size)}
+
+<a
+class="download"
+href="${url}"
+download="UPLOADREADY_merged.pdf"
+>
+⬇ Download Merged PDF
+</a>
+
+</div>
+`;
+
+showStatus(
+"PDFs merged successfully.",
+"success"
+);
+
+}catch(e){
+
+console.error(e);
+
+showStatus(
+"Could not merge these PDFs.",
+"error"
+);
+
+}
+
+}
+
+
+/* =========================================================
+   SPLIT PDF
+========================================================= */
+
+async function splitPDF(){
+
+if(!splitPDFFile){
+
+showStatus(
+"Please choose a PDF first.",
+"error"
+);
+
+return;
+
+}
+
+let rangeText=
+$("splitRanges").value.trim();
+
+if(!rangeText){
+
+showStatus(
+"Please enter page numbers or ranges.",
+"error"
+);
+
+return;
+
+}
+
+try{
+
+showStatus(
+"Creating split PDF...",
+"info"
+);
+
+let src=
+await PDFLib.PDFDocument.load(
+await splitPDFFile.arrayBuffer()
+);
+
+let total=
+src.getPageCount();
+
+let indexes=[];
+
+rangeText
+.split(",")
+.map(function(x){
+return x.trim();
+})
+.filter(Boolean)
+.forEach(function(part){
+
+if(part.includes("-")){
+
+let a,b;
+
+[a,b]=part
+.split("-")
+.map(Number);
+
+if(
+Number.isInteger(a)&&
+Number.isInteger(b)
+){
+
+if(a>b){
+let t=a;
+a=b;
+b=t;
+}
+
+for(
+let i=a;
+i<=b;
+i++
+){
+
+if(
+i>=1 &&
+i<=total &&
+!indexes.includes(i-1)
+){
+
+indexes.push(i-1);
+
+}
+
+}
+
+}
+
+}else{
+
+let n=Number(part);
+
+if(
+Number.isInteger(n)&&
+n>=1 &&
+n<=total &&
+!indexes.includes(n-1)
+){
+
+indexes.push(n-1);
+
+}
+
+}
+
+});
+
+if(!indexes.length){
+
+showStatus(
+"No valid pages found.",
+"error"
+);
+
+return;
+
+}
+
+let out=
+await PDFLib.PDFDocument.create();
+
+let pages=
+await out.copyPages(
+src,
+indexes
+);
+
+pages.forEach(function(page){
+
+out.addPage(page);
+
+});
+
+let data=
+await out.save();
+
+let blob=
+new Blob(
+[data],
+{
+type:"application/pdf"
+}
+);
+
+let url=
+URL.createObjectURL(blob);
+
+$("splitPDFResult").innerHTML=
+`
+<div class="pdf-result">
+
+Split PDF created: ${bytes(blob.size)}
+<br>
+Pages: ${indexes.map(function(i){return i+1}).join(", ")}
+
+<a
+class="download"
+href="${url}"
+download="${splitPDFFile.name.replace(/\.pdf$/i,"")}_split.pdf"
+>
+⬇ Download Split PDF
+</a>
+
+</div>
+`;
+
+showStatus(
+"Split PDF created successfully.",
+"success"
+);
+
+}catch(e){
+
+console.error(e);
+
+showStatus(
+"Could not split this PDF.",
+"error"
+);
+
+}
+
+}
+
+
+/* =========================================================
+   STARTUP
+========================================================= */
+
+countryChanged();
+
+</script>
+
+</body>
+</html>
