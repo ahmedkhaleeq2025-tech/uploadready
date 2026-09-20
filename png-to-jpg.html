@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PNG to JPG Converter Online - Free | UploadReady</title>
+<meta name="description" content="Convert PNG images to JPG online for free. Convert your PNG directly in your browser and download the JPG file with UploadReady.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaleeq2025-tech.github.io/uploadready/png-to-jpg.html">
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f3f6fa;color:#172033}
+.wrap{max-width:850px;margin:auto;padding:20px}
+header{background:linear-gradient(135deg,#111827,#2563eb);color:#fff;border-radius:18px;padding:28px;margin-bottom:20px}
+h1{margin:0 0 8px}header p{margin:0;color:#dbeafe}
+.card{background:#fff;border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 4px 18px #00000012}
+.upload{display:block;border:2px dashed #94a3b8;border-radius:14px;padding:35px;text-align:center;cursor:pointer;background:#f8fafc}
+input[type=file]{display:none}
+button{border:0;border-radius:9px;padding:12px 18px;font-weight:700;cursor:pointer;margin:10px 6px 0 0}
+.primary{background:#2563eb;color:#fff}.secondary{background:#e2e8f0}
+.result{display:none}.preview{max-width:100%;max-height:350px;border-radius:10px}
+.info{background:#eff6ff;border-left:4px solid #2563eb;padding:12px;border-radius:8px}
+a{color:#2563eb}footer{text-align:center;color:#64748b}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>PNG to JPG Converter Online</h1>
+<p>Convert PNG images to JPG directly in your browser.</p>
+</header>
+
+<section class="card">
+<label class="upload" for="file">
+<div style="font-size:38px">🔄</div>
+<div>Choose a PNG image</div>
+<small>PNG</small>
+</label>
+<input id="file" type="file" accept="image/png">
+
+<div id="controls" style="display:none">
+<p id="filename"></p>
+<button class="primary" id="convert">Convert to JPG</button>
+<button class="secondary" id="reset">Reset</button>
+</div>
+</section>
+
+<section class="card result" id="result">
+<h2>JPG image ready</h2>
+<p id="stats"></p>
+<img id="preview" class="preview" alt="Converted JPG preview"><br>
+<a id="download" download="converted-image.jpg">
+<button class="primary">Download JPG</button>
+</a>
+</section>
+
+<section class="card">
+<h2>How to convert PNG to JPG</h2>
+<ol>
+<li>Choose your PNG image.</li>
+<li>Click <strong>Convert to JPG</strong>.</li>
+<li>Preview the converted image.</li>
+<li>Download your JPG file.</li>
+</ol>
+<div class="info">Your image is converted in your browser and is not intentionally uploaded to an UploadReady server.</div>
+
+<h2>Why convert PNG to JPG?</h2>
+<p>JPG can produce smaller files for many photographic images. JPG does not support transparent backgrounds, so transparent PNG areas are rendered against a white background during this conversion.</p>
+
+<p><a href="./">← Back to UploadReady</a></p>
+</section>
+<footer>© UploadReady</footer>
+</div>
+
+<script>
+const fileInput=document.getElementById('file');
+const controls=document.getElementById('controls');
+const filename=document.getElementById('filename');
+const result=document.getElementById('result');
+const preview=document.getElementById('preview');
+const download=document.getElementById('download');
+const stats=document.getElementById('stats');
+let img=null;
+
+fileInput.onchange=()=>{
+ const file=fileInput.files[0];
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=e=>{
+  img=new Image();
+  img.onload=()=>{
+   filename.textContent=`Selected: ${file.name} • ${img.naturalWidth} × ${img.naturalHeight} pixels`;
+   controls.style.display='block';
+   result.style.display='none';
+  };
+  img.src=e.target.result;
+ };
+ reader.readAsDataURL(file);
+};
+
+document.getElementById('convert').onclick=()=>{
+ if(!img)return;
+ const canvas=document.createElement('canvas');
+ canvas.width=img.naturalWidth;
+ canvas.height=img.naturalHeight;
+ const ctx=canvas.getContext('2d');
+ ctx.fillStyle='#ffffff';
+ ctx.fillRect(0,0,canvas.width,canvas.height);
+ ctx.drawImage(img,0,0);
+
+ canvas.toBlob(blob=>{
+  const url=URL.createObjectURL(blob);
+  preview.src=url;
+  download.href=url;
+  stats.textContent=`JPG size: ${(blob.size/1024).toFixed(1)} KB • Dimensions: ${canvas.width} × ${canvas.height} pixels`;
+  result.style.display='block';
+  result.scrollIntoView({behavior:'smooth'});
+ },'image/jpeg',0.9);
+};
+
+document.getElementById('reset').onclick=()=>{
+ fileInput.value='';
+ controls.style.display='none';
+ result.style.display='none';
+ img=null;
+};
+</script>
+</body>
+</html>
