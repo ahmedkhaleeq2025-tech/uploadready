@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Compress PDF Online - Reduce PDF Size | UploadReady</title>
+<meta name="description" content="Compress PDF files online and reduce PDF file size. Select a PDF, choose a compression level and download the smaller PDF with UploadReady.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaleeq2025-tech.github.io/uploadready/compress-pdf.html">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6fa;color:#172033}
+.wrap{max-width:850px;margin:auto;padding:20px}
+header{background:linear-gradient(135deg,#111827,#2563eb);color:#fff;border-radius:18px;padding:28px;margin-bottom:20px}
+h1{margin:0 0 8px}header p{margin:0;color:#dbeafe}
+.card{background:#fff;border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 4px 18px #00000012}
+.upload{display:block;border:2px dashed #94a3b8;border-radius:14px;padding:35px;text-align:center;cursor:pointer;background:#f8fafc}
+input[type=file]{display:none}
+select{padding:11px;border:1px solid #cbd5e1;border-radius:8px}
+button{border:0;border-radius:9px;padding:12px 18px;font-weight:700;cursor:pointer;margin:10px 6px 0 0}
+.primary{background:#2563eb;color:#fff}.secondary{background:#e2e8f0}
+.result{display:none}.info{background:#eff6ff;border-left:4px solid #2563eb;padding:12px;border-radius:8px}
+a{color:#2563eb}footer{text-align:center;color:#64748b}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Compress PDF Online</h1>
+<p>Reduce PDF file size directly in your browser.</p>
+</header>
+
+<section class="card">
+<label class="upload" for="file">
+<div style="font-size:38px">📄</div>
+<div>Choose a PDF</div>
+<small>PDF files only</small>
+</label>
+<input id="file" type="file" accept="application/pdf">
+
+<div id="controls" style="display:none">
+<p id="filename"></p>
+<label for="level">Compression level</label>
+<select id="level">
+<option value="low">Low - preserve more quality</option>
+<option value="medium" selected>Medium - balanced</option>
+<option value="high">High - smaller output when possible</option>
+</select>
+<br>
+<button class="primary" id="compress">Compress PDF</button>
+<button class="secondary" id="reset">Reset</button>
+</div>
+</section>
+
+<section class="card result" id="result">
+<h2>Compressed PDF ready</h2>
+<p id="stats"></p>
+<a id="download" download="compressed.pdf"><button class="primary">Download Compressed PDF</button></a>
+</section>
+
+<section class="card">
+<h2>How to reduce PDF size</h2>
+<ol>
+<li>Choose your PDF file.</li>
+<li>Select a compression level.</li>
+<li>Click <strong>Compress PDF</strong>.</li>
+<li>Download the resulting PDF.</li>
+</ol>
+<div class="info">This page processes the PDF in your browser. It does not intentionally upload the selected file to an UploadReady server.</div>
+
+<h2>Important note about PDF compression</h2>
+<p>PDF files contain different kinds of content. Some PDFs can be made smaller by removing unused document data, while image-heavy PDFs may need image recompression for a larger reduction. The result depends on the original PDF.</p>
+<p><a href="./">← Back to UploadReady</a></p>
+</section>
+<footer>© UploadReady</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script>
+const fileInput=document.getElementById('file');
+const controls=document.getElementById('controls');
+const filename=document.getElementById('filename');
+const result=document.getElementById('result');
+const stats=document.getElementById('stats');
+const download=document.getElementById('download');
+let selectedFile=null;
+
+fileInput.onchange=()=>{
+ selectedFile=fileInput.files[0];
+ if(!selectedFile)return;
+ filename.textContent=`Selected: ${selectedFile.name} • ${(selectedFile.size/1024).toFixed(1)} KB`;
+ controls.style.display='block';
+ result.style.display='none';
+};
+
+document.getElementById('compress').onclick=async()=>{
+ if(!selectedFile)return;
+ const btn=document.getElementById('compress');
+ btn.disabled=true; btn.textContent='Compressing...';
+ try{
+  const bytes=await selectedFile.arrayBuffer();
+  const src=await PDFLib.PDFDocument.load(bytes,{ignoreEncryption:true});
+  const out=await PDFLib.PDFDocument.create();
+  const pages=await out.copyPages(src,src.getPageIndices());
+  pages.forEach(p=>out.addPage(p));
+  const level=document.getElementById('level').value;
+  const pdfBytes=await out.save({
+    useObjectStreams:true,
+    addDefaultPage:false,
+    objectsPerTick: level==='high' ? 20 : level==='low' ? 100 : 50
+  });
+  const blob=new Blob([pdfBytes],{type:'application/pdf'});
+  const url=URL.createObjectURL(blob);
+  download.href=url;
+  stats.textContent=`Original: ${(selectedFile.size/1024).toFixed(1)} KB • Output: ${(blob.size/1024).toFixed(1)} KB`;
+  result.style.display='block';
+  result.scrollIntoView({behavior:'smooth'});
+ }catch(e){
+  alert('This PDF could not be processed in the browser. Try another PDF.');
+ }finally{
+  btn.disabled=false; btn.textContent='Compress PDF';
+ }
+};
+
+document.getElementById('reset').onclick=()=>{
+ fileInput.value='';controls.style.display='none';result.style.display='none';selectedFile=null;
+};
+</script>
+</body>
+</html>
