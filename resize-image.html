@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resize Image Online - Change Image Dimensions | UploadReady</title>
+<meta name="description" content="Resize JPG, PNG and WebP images online by width and height. Change image dimensions directly in your browser and download the resized image with UploadReady.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://ahmedkhaleeq2025-tech.github.io/uploadready/resize-image.html">
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#f3f6fa;color:#172033}
+.wrap{max-width:850px;margin:auto;padding:20px}
+header{background:linear-gradient(135deg,#111827,#2563eb);color:#fff;border-radius:18px;padding:28px;margin-bottom:20px}
+h1{margin:0 0 8px}header p{margin:0;color:#dbeafe}
+.card{background:#fff;border-radius:16px;padding:22px;margin-bottom:18px;box-shadow:0 4px 18px #00000012}
+.upload{display:block;border:2px dashed #94a3b8;border-radius:14px;padding:35px;text-align:center;cursor:pointer;background:#f8fafc}
+input[type=file]{display:none}.row{display:flex;gap:12px;flex-wrap:wrap}
+label{font-weight:700;display:block;margin:12px 0 7px}
+input[type=number]{width:150px;padding:10px;border:1px solid #cbd5e1;border-radius:8px}
+button{border:0;border-radius:9px;padding:12px 18px;font-weight:700;cursor:pointer;margin:10px 6px 0 0}
+.primary{background:#2563eb;color:#fff}.secondary{background:#e2e8f0}
+.result{display:none}.preview{max-width:100%;max-height:350px;border-radius:10px}
+.info{background:#eff6ff;border-left:4px solid #2563eb;padding:12px;border-radius:8px}
+a{color:#2563eb}footer{text-align:center;color:#64748b}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header><h1>Resize Image Online</h1><p>Change JPG, PNG or WebP image dimensions directly in your browser.</p></header>
+
+<section class="card">
+<label class="upload" for="file">
+<div style="font-size:38px">📐</div><div>Choose an image</div><small>JPG, PNG or WebP</small>
+</label>
+<input id="file" type="file" accept="image/jpeg,image/png,image/webp">
+
+<div id="controls" style="display:none">
+<p id="original"></p>
+<div class="row">
+<div><label for="width">Width (px)</label><input id="width" type="number" min="1"></div>
+<div><label for="height">Height (px)</label><input id="height" type="number" min="1"></div>
+</div>
+<label><input id="lock" type="checkbox" checked> Keep aspect ratio</label>
+<br>
+<button class="primary" id="resize">Resize Image</button>
+<button class="secondary" id="reset">Reset</button>
+</div>
+</section>
+
+<section class="card result" id="result">
+<h2>Resized image</h2><p id="stats"></p>
+<img id="preview" class="preview" alt="Resized image preview"><br>
+<a id="download" download="resized-image.jpg"><button class="primary">Download Resized Image</button></a>
+</section>
+
+<section class="card">
+<h2>How to resize an image</h2>
+<ol>
+<li>Choose your JPG, PNG or WebP image.</li>
+<li>Enter the required width and height in pixels.</li>
+<li>Keep “Keep aspect ratio” enabled if you want the proportions preserved.</li>
+<li>Click <strong>Resize Image</strong> and download the result.</li>
+</ol>
+<div class="info">Your image is processed in your browser and is not intentionally uploaded to an UploadReady server.</div>
+<h2>Why resize an image?</h2>
+<p>Some websites, forms and applications require specific image dimensions. Resizing changes the pixel dimensions of an image without requiring you to upload it to a server.</p>
+<p><a href="./">← Back to UploadReady</a></p>
+</section>
+<footer>© UploadReady</footer>
+</div>
+
+<script>
+const fileInput=document.getElementById('file');
+const controls=document.getElementById('controls');
+const widthInput=document.getElementById('width');
+const heightInput=document.getElementById('height');
+const lock=document.getElementById('lock');
+const original=document.getElementById('original');
+const result=document.getElementById('result');
+const preview=document.getElementById('preview');
+const download=document.getElementById('download');
+const stats=document.getElementById('stats');
+let img=null,ratio=1;
+
+fileInput.onchange=()=>{
+ const file=fileInput.files[0]; if(!file)return;
+ const reader=new FileReader();
+ reader.onload=e=>{
+  img=new Image();
+  img.onload=()=>{
+   ratio=img.naturalWidth/img.naturalHeight;
+   widthInput.value=img.naturalWidth;
+   heightInput.value=img.naturalHeight;
+   original.textContent=`Original dimensions: ${img.naturalWidth} × ${img.naturalHeight} pixels`;
+   controls.style.display='block'; result.style.display='none';
+  };
+  img.src=e.target.result;
+ };
+ reader.readAsDataURL(file);
+};
+
+widthInput.oninput=()=>{
+ if(lock.checked && img) heightInput.value=Math.max(1,Math.round(+widthInput.value/ratio));
+};
+heightInput.oninput=()=>{
+ if(lock.checked && img) widthInput.value=Math.max(1,Math.round(+heightInput.value*ratio));
+};
+
+document.getElementById('resize').onclick=()=>{
+ if(!img)return;
+ const w=Math.max(1,Math.round(+widthInput.value));
+ const h=Math.max(1,Math.round(+heightInput.value));
+ const canvas=document.createElement('canvas');
+ canvas.width=w; canvas.height=h;
+ canvas.getContext('2d').drawImage(img,0,0,w,h);
+ canvas.toBlob(blob=>{
+  const url=URL.createObjectURL(blob);
+  preview.src=url; download.href=url;
+  stats.textContent=`New dimensions: ${w} × ${h} pixels • File size: ${(blob.size/1024).toFixed(1)} KB`;
+  result.style.display='block';
+  result.scrollIntoView({behavior:'smooth'});
+ },'image/jpeg',0.9);
+};
+
+document.getElementById('reset').onclick=()=>{
+ fileInput.value='';controls.style.display='none';result.style.display='none';img=null;
+};
+</script>
+</body>
+</html>
